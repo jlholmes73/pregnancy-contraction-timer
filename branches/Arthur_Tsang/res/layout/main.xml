@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout 
+		    xmlns:android="http://schemas.android.com/apk/res/android"
+		    android:id="@+id/pregRel"
+		    android:layout_width="fill_parent"
+		    android:layout_height="fill_parent"
+		    >
+<RelativeLayout		
+android:id="@+id/relative3" 
+android:layout_below="@id/pregRel"
+android:layout_width="fill_parent"
+android:layout_height="50dip"
+android:gravity="center"
+android:layout_centerHorizontal="true"
+> 
+<EditText
+        		android:id="@+id/timeDisplay"
+        		android:hint="00:00"
+        		android:layout_width="140dip"
+        		android:layout_height="45dip"
+        		android:textSize="26sp"
+        		android:cursorVisible="false"
+        		android:background="@android:drawable/editbox_background"
+        		android:singleLine="True"
+				android:editable="false"
+				android:focusable="false"
+				/>	  
+<EditText
+        		android:id="@+id/timeDisplay2"
+        		android:hint="00:00"
+        		android:layout_toRightOf="@id/timeDisplay"
+        		android:layout_width="140dip"
+        		android:layout_height="45dip"
+        		android:textSize="26sp"
+        		android:cursorVisible="false"
+        		android:background="@android:drawable/editbox_background"
+        		android:singleLine="True"
+				android:editable="false"
+				android:focusable="false"
+				/> 
+</RelativeLayout>
+<RelativeLayout		
+android:id="@+id/relative2" 
+android:layout_below="@id/relative3"
+android:layout_width="fill_parent"
+android:layout_height="160dip"
+android:gravity="center"
+android:layout_centerHorizontal="true"
+>   
+
+<Button
+        		android:id="@+id/PregButton"
+        		android:layout_width="140dip"
+        		android:layout_height="55dip"
+        		android:layout_marginTop="3dip"
+        		android:textColor="#ff0000"
+        		android:text="Start Contraction"
+        		android:focusable="false" />		    
+<Button
+        		android:id="@+id/WatersButton"
+        		android:layout_width="140dip"
+        		android:layout_height="55dip"
+        		android:layout_marginTop="3dip"
+        		android:text="Waters Broke"
+        		android:textColor="#0000ff"
+        		android:layout_toRightOf="@id/PregButton"
+        		android:focusable="false" />	
+        
+          <TextView
+        	android:id="@+id/Average"
+        	android:layout_marginLeft="20dip"
+        	android:layout_below="@id/PregButton"
+            android:text="Contraction freq ave last 5 start to start:"
+            android:textSize="12sp"
+            android:textColor="#ffffff"
+            android:gravity="center"
+            android:layout_height="wrap_content"
+            android:layout_width="120dip"
+             />		
+        		
+        	
+         <TextView
+        	android:id="@+id/AverageOut"
+        	android:layout_below="@id/PregButton"
+        	android:textColor="#ffffff"
+            android:text="00:00"
+            android:layout_marginLeft="20dip"
+            android:textSize="24sp"
+            android:layout_toRightOf="@id/Average"
+            android:layout_height="wrap_content"
+            android:layout_width="120dip"
+             />			
+        		
+        <TextView
+        	android:id="@+id/Average1"
+        	android:layout_marginLeft="20dip"
+        	android:layout_below="@id/Average"
+            android:text="Average duration of last 5 contractions:"
+            android:textSize="12sp"
+            android:textColor="#ff0000"
+            android:gravity="center"
+            android:layout_height="wrap_content"
+            android:layout_width="120dip"
+             />		
+        		
+        	
+         <TextView
+        	android:id="@+id/AverageOut1"
+        	android:layout_below="@id/Average"
+            android:text="00:00"
+            android:layout_marginLeft="20dip"
+            android:textSize="24sp"
+            android:layout_toRightOf="@id/Average1"
+            android:layout_height="wrap_content"
+            android:layout_width="120dip"
+             />		
+        		
+        		
+         <TextView
+        	android:id="@+id/Average2"
+        	android:layout_marginLeft="20dip"
+        	android:layout_below="@id/Average1"
+            android:text="Average duration of last 5 breaks:"
+            android:textSize="12sp"
+            android:textColor="#228b22"
+            android:gravity="center"
+            android:layout_height="wrap_content"
+            android:layout_width="120dip"
+             />		
+             
+             <TextView
+        	android:id="@+id/AverageOut2"
+        	android:layout_below="@id/Average1"
+            android:text="00:00"
+            android:layout_marginLeft="20dip"
+            android:textSize="24sp"
+            android:layout_toRightOf="@id/Average2"
+            android:layout_height="wrap_content"
+            android:layout_width="120dip"
+             />	
+        				    
+</RelativeLayout>
+
+<TextView
+        	android:layout_width="fill_parent"
+        	android:layout_height="wrap_content"
+        	android:layout_below="@id/relative2"
+            android:text="Contraction List"
+            android:gravity="center"
+            android:id="@+id/ActivityList"
+             />
+<ScrollView
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_below="@id/ActivityList"
+        android:id="@+id/sv"
+        > 
+
+	<TableLayout
+
+        android:id="@+id/ActivityList2"
+        android:layout_below="@id/ActivityList"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:stretchColumns="1"
+        android:collapseColumns="2"
+        android:gravity="bottom"
+        >
+        
+	</TableLayout>       
+</ScrollView>
+</RelativeLayout>
