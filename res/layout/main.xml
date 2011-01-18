@@ -5,11 +5,17 @@
 		    android:layout_width="fill_parent"
 		    android:layout_height="fill_parent"
 		    >
+<RelativeLayout		
+android:id="@+id/relative3" 
+android:layout_below="@id/pregRel"
+android:layout_width="fill_parent"
+android:layout_height="50dip"
+android:gravity="center"
+android:layout_centerHorizontal="true"
+> 
 <EditText
         		android:id="@+id/timeDisplay"
-        		android:gravity="center"
-        		android:hint="00:00:00"
-        		android:layout_centerHorizontal="true"
+        		android:hint="00:00"
         		android:layout_width="140dip"
         		android:layout_height="45dip"
         		android:textSize="26sp"
@@ -18,22 +24,37 @@
         		android:singleLine="True"
 				android:editable="false"
 				android:focusable="false"
-				/>	    
+				/>	  
+<EditText
+        		android:id="@+id/timeDisplay2"
+        		android:hint="00:00"
+        		android:layout_toRightOf="@id/timeDisplay"
+        		android:layout_width="140dip"
+        		android:layout_height="45dip"
+        		android:textSize="26sp"
+        		android:cursorVisible="false"
+        		android:background="@android:drawable/editbox_background"
+        		android:singleLine="True"
+				android:editable="false"
+				android:focusable="false"
+				/> 
+</RelativeLayout>
 <RelativeLayout		
 android:id="@+id/relative2" 
-android:layout_below="@id/timeDisplay"
+android:layout_below="@id/relative3"
 android:layout_width="fill_parent"
 android:layout_height="160dip"
 android:gravity="center"
 android:layout_centerHorizontal="true"
 >   
+
 <Button
         		android:id="@+id/PregButton"
         		android:layout_width="140dip"
         		android:layout_height="55dip"
         		android:layout_marginTop="3dip"
-        		android:textColor="#228b22"
-        		android:text="Contractions started"
+        		android:textColor="#ff0000"
+        		android:text="Start Contraction"
         		android:focusable="false" />		    
 <Button
         		android:id="@+id/WatersButton"
@@ -62,7 +83,7 @@ android:layout_centerHorizontal="true"
         	android:id="@+id/AverageOut"
         	android:layout_below="@id/PregButton"
         	android:textColor="#ffffff"
-            android:text="00:00:00"
+            android:text="00:00"
             android:layout_marginLeft="20dip"
             android:textSize="24sp"
             android:layout_toRightOf="@id/Average"
@@ -86,7 +107,7 @@ android:layout_centerHorizontal="true"
          <TextView
         	android:id="@+id/AverageOut1"
         	android:layout_below="@id/Average"
-            android:text="00:00:00"
+            android:text="00:00"
             android:layout_marginLeft="20dip"
             android:textSize="24sp"
             android:layout_toRightOf="@id/Average1"
@@ -110,7 +131,7 @@ android:layout_centerHorizontal="true"
              <TextView
         	android:id="@+id/AverageOut2"
         	android:layout_below="@id/Average1"
-            android:text="00:00:00"
+            android:text="00:00"
             android:layout_marginLeft="20dip"
             android:textSize="24sp"
             android:layout_toRightOf="@id/Average2"

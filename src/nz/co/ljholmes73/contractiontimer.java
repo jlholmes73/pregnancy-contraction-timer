@@ -2,11 +2,16 @@ package nz.co.ljholmes73;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Color;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.SystemClock;
@@ -27,20 +32,28 @@ import android.widget.Toast;
 public class contractiontimer extends Activity {
 	   /** Called when the activity is first created. */
 	private boolean startStop=false;
+	private boolean startStop2=false;
 	private String emailText ="";
 	private boolean flag =true;
 	private boolean watersFlag=true;
 	private boolean paused=false;
 	private boolean undoable=false;
 	private boolean lastWaters=false;
-	private String av="00:00:00";
+	private String av="00:00";
+	//c is break & b is contraction!!!
 	private int c1,c2,c3,c4,c5,c6,b1,b2,b3,b4,b5,b6,conCount =0;
 	public static final String PREF_FILE_NAME = "PrefFile";
 	private static final int PREF_EDIT=0;
+	private boolean timer2StatusChanged = false;
+	private long prevStoredTime2 = 0L;
 	
+	MediaPlayer mMediaPlayer = null;
+	 Uri alert = null; 
+	 AudioManager audioManager = null;
+	 
     private PregDbAdapter mDbHelper;
         static int seq= 0;
-        
+        static int seq2= 0;
         
         private Handler mHandler = new Handler(); 
         private Runnable mUpdateTimerTask = new Runnable() { 
@@ -57,13 +70,31 @@ public class contractiontimer extends Activity {
                         mHandler.postDelayed(mUpdateTimerTask, delay); 
                 } 
         }; 
+        private Runnable mUpdateTimerTask2 = new Runnable() { 
+            public void run() { 
+                    long millis = SystemClock.uptimeMillis(); 
+                    sayTimerTest2(); 
+                    // prevent it from blocking the main thread 
+                    int factor = 1; 
+                    long delay = 1000*factor - (SystemClock.uptimeMillis() - millis); 
+                    while (delay < 0) { 
+                            factor++; 
+                            delay = 1000*factor - (SystemClock.uptimeMillis() - millis); 
+                    } //1000*factor for 1 second
+                    mHandler.postDelayed(mUpdateTimerTask2, delay); 
+            } 
+    }; 
+    
         public contractiontimer() {  } 
         @Override 
         protected void onResume() { 
+        	
     		SharedPreferences preferences = getSharedPreferences(PREF_FILE_NAME, MODE_WORLD_WRITEABLE);
     		long startt = preferences.getLong("storedTime", 0);
+    		long startt2 = preferences.getLong("storedTime2", 0);
     		watersFlag = preferences.getBoolean("watersState", true);
     		startStop = preferences.getBoolean("storedState1", false);
+    		startStop2 = preferences.getBoolean("storedState2", false);
     		conCount=preferences.getInt("conCountS",0);
     		c1=preferences.getInt("C1",0);
     		c2=preferences.getInt("C2",0);
@@ -77,11 +108,12 @@ public class contractiontimer extends Activity {
     		b4=preferences.getInt("B4",0);
     		b5=preferences.getInt("B5",0);
     		b6=preferences.getInt("B6",0);
-    		av=preferences.getString("st2st", "00:00:00");
+    		av=preferences.getString("st2st", "00:00");
     		undoable=preferences.getBoolean("undoble", false);
     		paused = preferences.getBoolean("pause", false);
     		lastWaters=preferences.getBoolean("watersLst", false);
     		seq=(int) ((System.currentTimeMillis()-startt)/1000);// 1000 for 1 sec
+    		seq2= (startStop2) ? (int) ((System.currentTimeMillis()-startt2)/1000) : -1; //sayTimerTest2 will add one to it
     		TextView AvText = (TextView)findViewById(R.id.AverageOut);
     		//av=tfor((c1+b1+c2+b2+c3+b3+c4+b4+c5+b5)/5);
     		
@@ -91,19 +123,20 @@ public class contractiontimer extends Activity {
     		if(startt>0){
     			
     			EditText ext = (EditText) findViewById(R.id.timeDisplay);
-    	    	ext.setTextColor(Color.BLACK);
     	    	TableLayout tl = (TableLayout)findViewById(R.id.ActivityList2);
     	       	tl.removeAllViews();
     	    	rebuildList();
     	    	flag=false;
     	    	if (startStop){
     	    		final Button button = (Button) findViewById(R.id.PregButton);
-    	    		button.setText("Contraction Ended");
+    	    		button.setText("End Contraction");
             		button.setTextColor(getResources().getColor(R.color.darkgreen));
+            		ext.setTextColor(Color.RED); 
     	    	}else{
     	    		final Button button = (Button) findViewById(R.id.PregButton);
-    	    		button.setText("Contraction Started");
+    	    		button.setText("Start Contraction");
             		button.setTextColor(Color.RED);
+            		ext.setTextColor(getResources().getColor(R.color.darkgreen));
     	    	}
     	    	
     	    	if (conCount>9) {
@@ -114,11 +147,14 @@ public class contractiontimer extends Activity {
     	 
     		}
     		
-    		seq=(int) ((System.currentTimeMillis()-startt)/1000);// 1000 for 1 sec
+    		//seq=(int) ((System.currentTimeMillis()-startt)/1000);// 1000 for 1 sec
     		if(paused){
     			EditText TimerTestText = (EditText)findViewById(R.id.timeDisplay);
-    		   	TimerTestText.getText().clear();
-    		   	TimerTestText.setTextColor(Color.TRANSPARENT);
+    		   	TimerTestText.setText("00:00");
+    		   	TimerTestText.setTextColor(Color.BLACK);
+    		   	EditText TimerTestText2 = (EditText)findViewById(R.id.timeDisplay2);
+    		   	TimerTestText2.setText("00:00");
+    		   	TimerTestText2.setTextColor(Color.BLACK);
     		   	final Button button = (Button) findViewById(R.id.PregButton);
             	final Button wbutton = (Button) findViewById(R.id.WatersButton);
             	wbutton.setEnabled(false);
@@ -126,20 +162,35 @@ public class contractiontimer extends Activity {
     			
     		}
     		sayTimerTest(); 
+    		sayTimerTest2(); 
             mHandler.removeCallbacks(mUpdateTimerTask); 
+            mHandler.removeCallbacks(mUpdateTimerTask2); 
             mHandler.postDelayed(mUpdateTimerTask, 1000); 
+            if( startStop2 )
+            	mHandler.postDelayed(mUpdateTimerTask2, 1000); 
             super.onResume(); 
     } 
         @Override 
         protected void onPause() { 
         		
         		mHandler.removeCallbacks(mUpdateTimerTask); 
+        		mHandler.removeCallbacks(mUpdateTimerTask2); 
+        		if( mMediaPlayer != null ) {
+        			mMediaPlayer.release();
+        			mMediaPlayer = null;
+        		}
                 super.onPause(); 
         } 
        
         
         private void sayTimerTest() { 
         		++seq;
+        		if( mMediaPlayer != null && !mMediaPlayer.isPlaying() ) {
+        			//mMediaPlayer.stop();
+        			mMediaPlayer.release();
+        			mMediaPlayer = null;
+        		}
+        		
         		if (flag ){seq=0;}
         		if(paused){seq=0;}
                 EditText TimerTestText = (EditText)findViewById(R.id.timeDisplay); 
@@ -162,7 +213,52 @@ public class contractiontimer extends Activity {
                 	//TimerTestText.post(mUpdateTimerTask);
                 
         } 
+        private void sayTimerTest2() { 
+    		++seq2;
+    		if (flag ){seq2=0;}
+    		if(paused){seq2=0;}
+            EditText TimerTestText = (EditText)findViewById(R.id.timeDisplay2); 
+            TimerTestText.setText(tfor(seq2));
+            TimerTestText.invalidate(); 	
+            /*  no need for having 2 places to check for long pause
+            	if(seq2>21600)//21600
+            	{
+            		seq2 =0;
+            		paused =true;
+        		   	TimerTestText.getText().clear();
+        		   	TimerTestText.setTextColor(Color.TRANSPARENT);
+        		   	SharedPreferences preferences = getSharedPreferences(PREF_FILE_NAME, MODE_WORLD_WRITEABLE);
+                	SharedPreferences.Editor editor = preferences.edit();
+                	editor.putBoolean("pause", paused);
+                	editor.commit();
+        		   	
+            		onPausedLongTime();
+            	}*/
+            	//TimerTestText.post(mUpdateTimerTask);
+            
+    } 
+        
+    private void beep() {
+        try {
+        	if( mMediaPlayer == null ) {
+        		mMediaPlayer = new MediaPlayer();
+        		alert = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION); 
+           	  	audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
+           	  	mMediaPlayer.setDataSource(this, alert);
+           	  	mMediaPlayer.setAudioStreamType(AudioManager.STREAM_NOTIFICATION);
+	    		mMediaPlayer.setLooping(false);
+	    		mMediaPlayer.prepare();
+        	}
+    	 if (audioManager.getStreamVolume(AudioManager.STREAM_NOTIFICATION) != 0) {
+    		 mMediaPlayer.seekTo(0);
+    		 mMediaPlayer.start();
+    	  }
+    	}catch(Exception e) { 
+    	}
+    	
+    }
 	
+    long lastClick = 0L;
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -171,18 +267,24 @@ public class contractiontimer extends Activity {
         
         mDbHelper = new PregDbAdapter(this);
         mDbHelper.open();
-       
-        
+    	
         final Button button = (Button) findViewById(R.id.PregButton);
         button.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
                 // Perform action on clicks
-            	
+            	long now = System.currentTimeMillis();
+            	long diff = now - lastClick;
+            	lastClick = now;
+            	if( diff < 3000 ) return;
+            	 /* do nothing if button pressed too close together
+            							  use undo for wrong click, but not start/stop it right away
+            							  as that would mess up with the stats */
+            	beep();
             	if(startStop){
             		startStop=false;
-            		button.setText("Contraction Started");
+            		button.setText("Start Contraction");
             		button.setTextColor(Color.RED);
-            	
+            		((EditText)findViewById(R.id.timeDisplay)).setTextColor(getResources().getColor(R.color.darkgreen)); 
             		//EditText TimerTestText = (EditText)findViewById(R.id.timeDisplay);
             		//timer=TimerTestText.getText().toString();
             		flag = false;
@@ -226,9 +328,11 @@ public class contractiontimer extends Activity {
             	else
             	{
             		startStop = true;
-            		button.setText("Contraction Ended");	
+            		button.setText("End Contraction");	
             		
             		button.setTextColor(getResources().getColor(R.color.darkgreen));
+            		((EditText)findViewById(R.id.timeDisplay)).setTextColor(Color.RED); 
+            		
             		//Toast.makeText(contractiontimer.this, ""+(getResources().getColor(R.color.darkgreen)), Toast.LENGTH_LONG).show();
                 	
             		
@@ -267,14 +371,36 @@ public class contractiontimer extends Activity {
                 		av=tfor((c1+b1+c2+b2+c3+b3+c4+b4+c5+b5)/5);
                 		
                 		AvText.setText(av);
-                		
-                		
-                		
                 	}
-                	
                 	
             	}
             	
+            	timer2StatusChanged = false;
+            	if( startStop ) {
+	            	if( startStop2 ) {
+	            		if( c1 > 600 ||
+	            			( ( b1 < 60 || (b1+c1) > 300 ) &&
+            				( b2 < 60 || (b2+c2) > 300 ) &&
+            				( b3 < 60 || (b3+c3) > 300 ) &&
+            				( b4 < 60 || (b4+c4) > 300 ) &&
+            				( b5 < 60 || (b5+c5) > 300 )
+	            			) ) {
+	            			startStop2 = false;
+	            			seq2 = 0;
+	            			timer2StatusChanged = true;
+	            			mHandler.removeCallbacks(mUpdateTimerTask2);
+	            			display2();
+	            		}
+	            	} else {
+	            		if( b1 > 60 && (b1+c1) < 300 ) {
+	            			startStop2 = true;
+	            			timer2StatusChanged = true;
+	            			mHandler.postDelayed(mUpdateTimerTask2, 1000);
+	            			display2();
+	            		}
+	            	}
+            	}
+                
             	conCount++;
             	SharedPreferences preferences = getSharedPreferences(PREF_FILE_NAME, MODE_WORLD_WRITEABLE);
             	SharedPreferences.Editor editor = preferences.edit();
@@ -285,6 +411,7 @@ public class contractiontimer extends Activity {
             	lastWaters=false;
             	appendRow();
                 display();
+                
             	
             }
         });
@@ -326,19 +453,24 @@ public class contractiontimer extends Activity {
 
         TextView label = new TextView(this);
         label.setText(test);
+        long millis = System.currentTimeMillis();
+        
         if (startStop){
-        	long millis = System.currentTimeMillis();
-        	test= "Break ended @ " +(DateFormat.format("h:mm:ssaa", millis)) + "\n duration was "+ timer;
-
-        	row.setBackgroundColor(getResources().getColor(R.color.darkgreen));
-        	createPreg(-14513374,test);
-        }else
-        {
-        	long millis = System.currentTimeMillis();
+        	if( b1+b2+b3+b4+b5+b6+c1+c2+c3+c4+c5+c6 == 0 ) {
+        		test = "Contraction started @ "+(DateFormat.format("h:mm:ssaa", millis));
+        		row.setBackgroundColor(Color.DKGRAY);
+        		createPreg(0xff444444,test);
+        	} else {
+        		test= "Break ended @ " +(DateFormat.format("h:mm:ssaa", millis)) + "\n duration was "+ timer;
+        		row.setBackgroundColor(getResources().getColor(R.color.darkgreen));
+        		createPreg(-14513374,test);
+        	}
+        }else {
         	row.setBackgroundColor(Color.RED);
         	test= "Contraction ended @ " +(DateFormat.format("h:mm:ssaa", millis)) + "\n duration was "+ timer;
         	createPreg(-65536,test);
-        	}
+        }
+        
         label.setTextColor(Color.WHITE);
         label.setGravity(Gravity.CENTER);
         label.setText(test);
@@ -530,18 +662,33 @@ public class contractiontimer extends Activity {
     	
     	seq=0;
     	EditText ext = (EditText) findViewById(R.id.timeDisplay);
-    	ext.setText("");
+    	ext.setText("00:00");
+      	//ext.setTextColor(Color.BLACK);
+      	
+    }
+    
+    public void display2(){
+    	
+    	SharedPreferences preferences = getSharedPreferences(PREF_FILE_NAME, MODE_WORLD_WRITEABLE);
+    	
+    	SharedPreferences.Editor editor = preferences.edit();
+    	long storedTime2 = ( startStop2 ) ? System.currentTimeMillis() : 0L;
+    	prevStoredTime2 = storedTime2;
+    	editor.putLong("storedTime2", storedTime2 ); // value to store
+    	editor.putBoolean("storedState2", startStop2);
+    	editor.commit();
+    	
+    	EditText ext = (EditText) findViewById(R.id.timeDisplay2);
+    	ext.setText("00:00");
       	ext.setTextColor(Color.BLACK);
       	
-    	
-    	
     }
+
     public String tfor(int time){
     	String temp="";
-    	int hours= time/3600;
-        int minutes=(time-3600*hours)/60;
-        int seconds=(time-(3600*hours+60*minutes));
-        temp=String.format("%02d:%02d:%02d",hours,minutes,seconds);
+        int minutes=time/60;
+        int seconds=(time-(60*minutes));
+        temp=String.format("%02d:%02d",minutes,seconds);
         
     	
     	return temp;
@@ -553,16 +700,19 @@ public class contractiontimer extends Activity {
     	int db=	mDbHelper.deleteAllPreg();
     	mDbHelper = new PregDbAdapter(this);
     	mDbHelper.open();
-    	EditText ext = (EditText) findViewById(R.id.timeDisplay);
-    	ext.setText("");
-    	ext.setTextColor(Color.BLACK);
     	watersFlag=true;
     	flag=true;
     	seq=0;
+    	seq2=0;
+    	mHandler.removeCallbacks(mUpdateTimerTask2);
     	startStop=false;
+    	startStop2=false;
     	EditText TimerTestText = (EditText)findViewById(R.id.timeDisplay);
-    	TimerTestText.getText().clear();
+    	TimerTestText.setText("00:00");
     	TimerTestText.setTextColor(Color.TRANSPARENT);
+    	EditText TimerTestText2 = (EditText)findViewById(R.id.timeDisplay2);
+    	TimerTestText2.setText("00:00");
+    	TimerTestText2.setTextColor(Color.TRANSPARENT);
     	TableLayout tl = (TableLayout)findViewById(R.id.ActivityList2);
     	tl.removeAllViews();
     	c1=0;
@@ -580,26 +730,30 @@ public class contractiontimer extends Activity {
     	conCount=0;
     	paused=false;
     	TextView AvText = (TextView)findViewById(R.id.AverageOut);
-		av="00:00:00";
+		av="00:00";
+		timer2StatusChanged = false;
+		prevStoredTime2 = 0L;
 		
 		AvText.setText(av);
     	TextView AvConText = (TextView)findViewById(R.id.AverageOut1);
-    	AvConText.setText("00:00:00");
+    	AvConText.setText("00:00");
     	TextView AvBrkText = (TextView)findViewById(R.id.AverageOut2);
-    	AvBrkText.setText("00:00:00");
+    	AvBrkText.setText("00:00");
     	Button button = (Button) findViewById(R.id.PregButton);
     	Button wbutton = (Button) findViewById(R.id.WatersButton);
     	wbutton.setEnabled(true);
     	button.setEnabled(true);
-    	button.setText("Contractions Started");
+    	button.setText("Start Contraction");
     	button.setTextColor(Color.RED);
     	undoable=false;
     	SharedPreferences preferences = getSharedPreferences(PREF_FILE_NAME, MODE_WORLD_WRITEABLE);
     	SharedPreferences.Editor editor = preferences.edit();
     	editor.putLong("storedTime", 0); // value to store
+    	editor.putLong("storedTime2", 0);
     	editor.putBoolean("watersState", true); // value to store
     	editor.putInt("conCountS", 0); // value to store
     	editor.putBoolean("storedState1", false);
+    	editor.putBoolean("storedState2", false);
     	editor.putBoolean("pause", false);
     	editor.putInt("C1", 0);
     	editor.putInt("C2", 0);
@@ -613,7 +767,7 @@ public class contractiontimer extends Activity {
     	editor.putInt("B4", 0);
     	editor.putInt("B5", 0);
     	editor.putInt("B6", 0);
-    	editor.putString("st2st", "00:00:00");
+    	editor.putString("st2st", "00:00");
     	editor.putBoolean("undoble", false);
     	editor.commit();
 
@@ -779,7 +933,7 @@ public class contractiontimer extends Activity {
             	wbutton.setEnabled(false);
             	button.setEnabled(false);
             	EditText TimerTestText = (EditText)findViewById(R.id.timeDisplay);
-    		   	TimerTestText.getText().clear();
+    		   	TimerTestText.setText("00:00");
     		   	TimerTestText.setTextColor(Color.TRANSPARENT);       	
             	paused=true;
             	SharedPreferences preferences = getSharedPreferences(PREF_FILE_NAME, MODE_WORLD_WRITEABLE);
@@ -890,7 +1044,31 @@ public class contractiontimer extends Activity {
     	
     	}
     	
-    	
+    	// if undoing a "contraction start" & has start/stop timer 
+    	if( !startStop && timer2StatusChanged ) {
+    		if( startStop2 ) {
+    			//if timer started by last step, stop it
+    			startStop2 = false;
+    			seq2 = 0;
+    			mHandler.removeCallbacks(mUpdateTimerTask2);
+    			display2();
+    		} else {
+    			/*undo a contraction start means prolonging the last break
+    			* so if the timer has already been stopped, longer break time means the timer is not going to start again.
+    			* prevStoredTime2 is not stored into database, so if 
+    			* 1. contraction start + stop timer (due to breaking the 51 rule 5 times in a row)
+    			* 2. power off
+    			* 3. undo last (prevStoredTime2 won't be recovered)
+    			* the time will be off for a while and next contraction start will stop the timer and reset everything.
+    			*/
+    			//if timer stopped by last step, start it and restore storedTime2 (recal seq2)
+    			startStop2 = true;
+    			seq2=(int) ((System.currentTimeMillis()-prevStoredTime2)/1000);
+    			mHandler.postDelayed(mUpdateTimerTask2, 1000);
+    			display2();
+    		}
+    		
+    	}
     	
     
     	
